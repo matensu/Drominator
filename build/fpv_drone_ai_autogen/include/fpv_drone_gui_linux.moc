@@ -1,0 +1,313 @@
+/****************************************************************************
+** Meta object code from reading C++ file 'fpv_drone_gui_linux.cpp'
+**
+** Created by: The Qt Meta Object Compiler version 68 (Qt 6.4.2)
+**
+** WARNING! All changes made in this file will be lost!
+*****************************************************************************/
+
+#include <memory>
+#include <QtCore/qmetatype.h>
+#if !defined(Q_MOC_OUTPUT_REVISION)
+#error "The header file 'fpv_drone_gui_linux.cpp' doesn't include <QObject>."
+#elif Q_MOC_OUTPUT_REVISION != 68
+#error "This file was generated using the moc from 6.4.2. It"
+#error "cannot be used with the include files from this version of Qt."
+#error "(The moc has changed too much.)"
+#endif
+
+#ifndef Q_CONSTINIT
+#define Q_CONSTINIT
+#endif
+
+QT_BEGIN_MOC_NAMESPACE
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
+namespace {
+struct qt_meta_stringdata_VideoWidget_t {
+    uint offsetsAndSizes[2];
+    char stringdata0[12];
+};
+#define QT_MOC_LITERAL(ofs, len) \
+    uint(sizeof(qt_meta_stringdata_VideoWidget_t::offsetsAndSizes) + ofs), len 
+Q_CONSTINIT static const qt_meta_stringdata_VideoWidget_t qt_meta_stringdata_VideoWidget = {
+    {
+        QT_MOC_LITERAL(0, 11)   // "VideoWidget"
+    },
+    "VideoWidget"
+};
+#undef QT_MOC_LITERAL
+} // unnamed namespace
+
+Q_CONSTINIT static const uint qt_meta_data_VideoWidget[] = {
+
+ // content:
+      10,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       0,    0, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+       0        // eod
+};
+
+Q_CONSTINIT const QMetaObject VideoWidget::staticMetaObject = { {
+    QMetaObject::SuperData::link<QLabel::staticMetaObject>(),
+    qt_meta_stringdata_VideoWidget.offsetsAndSizes,
+    qt_meta_data_VideoWidget,
+    qt_static_metacall,
+    nullptr,
+    qt_incomplete_metaTypeArray<qt_meta_stringdata_VideoWidget_t,
+        // Q_OBJECT / Q_GADGET
+        QtPrivate::TypeAndForceComplete<VideoWidget, std::true_type>
+    >,
+    nullptr
+} };
+
+void VideoWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    (void)_o;
+    (void)_id;
+    (void)_c;
+    (void)_a;
+}
+
+const QMetaObject *VideoWidget::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *VideoWidget::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_meta_stringdata_VideoWidget.stringdata0))
+        return static_cast<void*>(this);
+    return QLabel::qt_metacast(_clname);
+}
+
+int VideoWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QLabel::qt_metacall(_c, _id, _a);
+    return _id;
+}
+namespace {
+struct qt_meta_stringdata_RCBar_t {
+    uint offsetsAndSizes[2];
+    char stringdata0[6];
+};
+#define QT_MOC_LITERAL(ofs, len) \
+    uint(sizeof(qt_meta_stringdata_RCBar_t::offsetsAndSizes) + ofs), len 
+Q_CONSTINIT static const qt_meta_stringdata_RCBar_t qt_meta_stringdata_RCBar = {
+    {
+        QT_MOC_LITERAL(0, 5)   // "RCBar"
+    },
+    "RCBar"
+};
+#undef QT_MOC_LITERAL
+} // unnamed namespace
+
+Q_CONSTINIT static const uint qt_meta_data_RCBar[] = {
+
+ // content:
+      10,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       0,    0, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+       0        // eod
+};
+
+Q_CONSTINIT const QMetaObject RCBar::staticMetaObject = { {
+    QMetaObject::SuperData::link<QWidget::staticMetaObject>(),
+    qt_meta_stringdata_RCBar.offsetsAndSizes,
+    qt_meta_data_RCBar,
+    qt_static_metacall,
+    nullptr,
+    qt_incomplete_metaTypeArray<qt_meta_stringdata_RCBar_t,
+        // Q_OBJECT / Q_GADGET
+        QtPrivate::TypeAndForceComplete<RCBar, std::true_type>
+    >,
+    nullptr
+} };
+
+void RCBar::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    (void)_o;
+    (void)_id;
+    (void)_c;
+    (void)_a;
+}
+
+const QMetaObject *RCBar::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *RCBar::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_meta_stringdata_RCBar.stringdata0))
+        return static_cast<void*>(this);
+    return QWidget::qt_metacast(_clname);
+}
+
+int RCBar::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QWidget::qt_metacall(_c, _id, _a);
+    return _id;
+}
+namespace {
+struct qt_meta_stringdata_MainWindow_t {
+    uint offsetsAndSizes[18];
+    char stringdata0[11];
+    char stringdata1[20];
+    char stringdata2[1];
+    char stringdata3[15];
+    char stringdata4[16];
+    char stringdata5[20];
+    char stringdata6[15];
+    char stringdata7[6];
+    char stringdata8[9];
+};
+#define QT_MOC_LITERAL(ofs, len) \
+    uint(sizeof(qt_meta_stringdata_MainWindow_t::offsetsAndSizes) + ofs), len 
+Q_CONSTINIT static const qt_meta_stringdata_MainWindow_t qt_meta_stringdata_MainWindow = {
+    {
+        QT_MOC_LITERAL(0, 10),  // "MainWindow"
+        QT_MOC_LITERAL(11, 19),  // "onConnectBtnClicked"
+        QT_MOC_LITERAL(31, 0),  // ""
+        QT_MOC_LITERAL(32, 14),  // "onRefreshPorts"
+        QT_MOC_LITERAL(47, 15),  // "onCamBtnClicked"
+        QT_MOC_LITERAL(63, 19),  // "onStartAIBtnClicked"
+        QT_MOC_LITERAL(83, 14),  // "onArmedChanged"
+        QT_MOC_LITERAL(98, 5),  // "state"
+        QT_MOC_LITERAL(104, 8)   // "flushLog"
+    },
+    "MainWindow",
+    "onConnectBtnClicked",
+    "",
+    "onRefreshPorts",
+    "onCamBtnClicked",
+    "onStartAIBtnClicked",
+    "onArmedChanged",
+    "state",
+    "flushLog"
+};
+#undef QT_MOC_LITERAL
+} // unnamed namespace
+
+Q_CONSTINIT static const uint qt_meta_data_MainWindow[] = {
+
+ // content:
+      10,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       6,   14, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+ // slots: name, argc, parameters, tag, flags, initial metatype offsets
+       1,    0,   50,    2, 0x08,    1 /* Private */,
+       3,    0,   51,    2, 0x08,    2 /* Private */,
+       4,    0,   52,    2, 0x08,    3 /* Private */,
+       5,    0,   53,    2, 0x08,    4 /* Private */,
+       6,    1,   54,    2, 0x08,    5 /* Private */,
+       8,    0,   57,    2, 0x08,    7 /* Private */,
+
+ // slots: parameters
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::Int,    7,
+    QMetaType::Void,
+
+       0        // eod
+};
+
+Q_CONSTINIT const QMetaObject MainWindow::staticMetaObject = { {
+    QMetaObject::SuperData::link<QMainWindow::staticMetaObject>(),
+    qt_meta_stringdata_MainWindow.offsetsAndSizes,
+    qt_meta_data_MainWindow,
+    qt_static_metacall,
+    nullptr,
+    qt_incomplete_metaTypeArray<qt_meta_stringdata_MainWindow_t,
+        // Q_OBJECT / Q_GADGET
+        QtPrivate::TypeAndForceComplete<MainWindow, std::true_type>,
+        // method 'onConnectBtnClicked'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'onRefreshPorts'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'onCamBtnClicked'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'onStartAIBtnClicked'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'onArmedChanged'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<int, std::false_type>,
+        // method 'flushLog'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>
+    >,
+    nullptr
+} };
+
+void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        auto *_t = static_cast<MainWindow *>(_o);
+        (void)_t;
+        switch (_id) {
+        case 0: _t->onConnectBtnClicked(); break;
+        case 1: _t->onRefreshPorts(); break;
+        case 2: _t->onCamBtnClicked(); break;
+        case 3: _t->onStartAIBtnClicked(); break;
+        case 4: _t->onArmedChanged((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 5: _t->flushLog(); break;
+        default: ;
+        }
+    }
+}
+
+const QMetaObject *MainWindow::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *MainWindow::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_meta_stringdata_MainWindow.stringdata0))
+        return static_cast<void*>(this);
+    return QMainWindow::qt_metacast(_clname);
+}
+
+int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QMainWindow::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 6)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 6;
+    } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+        if (_id < 6)
+            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
+        _id -= 6;
+    }
+    return _id;
+}
+QT_WARNING_POP
+QT_END_MOC_NAMESPACE

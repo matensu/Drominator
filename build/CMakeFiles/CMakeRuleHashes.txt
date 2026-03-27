@@ -1,0 +1,4 @@
+# Hashes of file build rules.
+623903847d8cafe04e3417193326a8b9 CMakeFiles/fpv_drone_ai_autogen
+623903847d8cafe04e3417193326a8b9 CMakeFiles/fpv_drone_ai_autogen_timestamp_deps
+dc77bb0513dd1f91a0050acd3cb10aff fpv_drone_ai_autogen/timestamp
