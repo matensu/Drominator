@@ -1,0 +1,3 @@
+/home/matensu/Documents/miniCam/build/CMakeFiles/minicam.dir
+/home/matensu/Documents/miniCam/build/CMakeFiles/edit_cache.dir
+/home/matensu/Documents/miniCam/build/CMakeFiles/rebuild_cache.dir
