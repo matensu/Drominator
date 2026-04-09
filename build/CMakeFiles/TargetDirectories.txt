@@ -1,5 +1,0 @@
-/home/matensu/Documents/Drominator/build/CMakeFiles/fpv_drone_ai.dir
-/home/matensu/Documents/Drominator/build/CMakeFiles/edit_cache.dir
-/home/matensu/Documents/Drominator/build/CMakeFiles/rebuild_cache.dir
-/home/matensu/Documents/Drominator/build/CMakeFiles/fpv_drone_ai_autogen_timestamp_deps.dir
-/home/matensu/Documents/Drominator/build/CMakeFiles/fpv_drone_ai_autogen.dir
