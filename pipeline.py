@@ -1,9 +1,12 @@
+import os
+os.environ["QT_QPA_PLATFORM"] = "xcb"
+
 import cv2
 import torch
 import time
 from ultralytics import YOLO
 
-CAMERA_INDEX   = 4
+CAMERA_INDEX   = 2
 CONF_THRESHOLD = 0.5
 INFER_SIZE     = 320
 
@@ -50,6 +53,9 @@ cap.set(cv2.CAP_PROP_FPS,          60)
 cap.set(cv2.CAP_PROP_BUFFERSIZE,   1)
 print(f"[CAM] /dev/video{CAMERA_INDEX} ouvert (720x480 MJPG 60fps)")
 print("[OK]  Pipeline actif — Echap pour quitter\n")
+
+cv2.namedWindow("Drominator — FPV Vision", cv2.WINDOW_NORMAL)
+cv2.resizeWindow("Drominator — FPV Vision", 960, 540)
 
 # ── Boucle principale ─────────────────────────────────────────────────────────
 fps_display = 0.0
