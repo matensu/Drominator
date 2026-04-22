@@ -398,8 +398,16 @@ def main():
     final_path = os.path.join(MODEL_DIR, "drone_pipeline_final.zip")
     if os.path.exists(final_path):
         print(f"[TRAIN] Reprise : {final_path}")
-        model = PPO.load(final_path, env=env)
+        try:
+            model = PPO.load(final_path, env=env)
+        except (ValueError, Exception) as e:
+            print(f"[TRAIN] Modèle incompatible ({e}) — entraînement depuis zéro")
+            os.remove(final_path)
+            model = None
     else:
+        model = None
+
+    if model is None:
         model = PPO(
             "CnnPolicy",
             env,
