@@ -1,6 +1,12 @@
 .venv/
 build/
 /models/
+ai/models/
+ai/models_pipeline/
+ai/models_vision/
+ai/logs/
+ai/logs_pipeline/
+ai/logs_vision/
 *.pt
 *.onnx
 *.engine
