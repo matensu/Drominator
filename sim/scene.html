@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Drominator — Simulation 3D</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; }
+  canvas { display: block; }
+  #hud {
+    position: absolute; top: 10px; left: 10px;
+    color: #0ff; font-family: 'Courier New', monospace; font-size: 12px;
+    text-shadow: 0 0 6px #0ff; pointer-events: none;
+  }
+  #ws-status {
+    position: absolute; top: 10px; right: 10px;
+    color: #0f0; font-family: monospace; font-size: 12px;
+  }
+  #crosshair {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: white; font-size: 18px; pointer-events: none; opacity: 0.6;
+  }
+  #overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-family: monospace; font-size: 16px; text-align: center;
+  }
+  #overlay p { line-height: 2; }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  WASD = avancer/reculer/strafe<br>
+  Souris = regarder<br>
+  Clic = capturer la souris<br>
+  Échap = libérer
+</div>
+<div id="ws-status">WS: connexion...</div>
+<div id="crosshair">+</div>
+<div id="overlay"><p>Cliquez pour commencer<br><small>La scène sera streamée vers test_webcam.py</small></p></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script>
+// ── Renderer ──────────────────────────────────────────────────────────────────
+const W = 640, H = 480;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// ── Scene ─────────────────────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+scene.fog = new THREE.FogExp2(0x1a1a2e, 0.04);
+
+// ── Camera ────────────────────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(75, W / H, 0.05, 100);
+camera.position.set(0, 1.65, 9);
+
+// ── Lights ────────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
+function makeSpot(x, y, z) {
+  const l = new THREE.SpotLight(0xfff5cc, 1.2, 20, Math.PI / 5, 0.4);
+  l.position.set(x, y, z);
+  l.castShadow = true;
+  l.shadow.mapSize.set(512, 512);
+  scene.add(l);
+  scene.add(l.target);
+  l.target.position.set(x, 0, z);
+}
+makeSpot(-4, 3.8, 2);
+makeSpot(4, 3.8, -2);
+makeSpot(0, 3.8, -5);
+
+// ── Materials ─────────────────────────────────────────────────────────────────
+const mFloor   = new THREE.MeshLambertMaterial({ color: 0x555566 });
+const mWall    = new THREE.MeshLambertMaterial({ color: 0x8888aa });
+const mCeiling = new THREE.MeshLambertMaterial({ color: 0x444455 });
+const mPerson  = new THREE.MeshLambertMaterial({ color: 0xe05533 });
+const mChair   = new THREE.MeshLambertMaterial({ color: 0x7a4422 });
+const mTable   = new THREE.MeshLambertMaterial({ color: 0x995533 });
+const mBox     = new THREE.MeshLambertMaterial({ color: 0x336644 });
+const mWindow  = new THREE.MeshLambertMaterial({ color: 0x88ccff, transparent: true, opacity: 0.35 });
+const mDoor    = new THREE.MeshLambertMaterial({ color: 0x553322 });
+
+function box(w, h, d, mat, x, y, z, ry = 0) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.rotation.y = ry;
+  m.castShadow = true;
+  m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+
+// ── Room ──────────────────────────────────────────────────────────────────────
+// Floor
+box(22, 0.1, 32, mFloor, 0, -0.05, 0);
+scene.add(new THREE.GridHelper(22, 22, 0x334455, 0x223344));
+
+// Ceiling
+box(22, 0.1, 32, mCeiling, 0, 4.05, 0);
+
+// Back wall
+box(22, 4.2, 0.2, mWall, 0, 2, -6);
+
+// Left wall
+box(0.2, 4.2, 32, mWall, -11, 2, 0);
+
+// Right wall
+box(0.2, 4.2, 32, mWall, 11, 2, 0);
+
+// Front wall (behind camera, partial)
+box(8, 4.2, 0.2, mWall, -7, 2, 10);
+box(8, 4.2, 0.2, mWall,  7, 2, 10);
+
+// Interior wall with door + window
+box(7.5, 4.2, 0.25, mWall, -7.25, 2, 2);    // left segment
+box(7.5, 4.2, 0.25, mWall,  7.25, 2, 2);    // right segment
+box(15,  1.0, 0.25, mWall,   0,  3.6, 2);   // above door
+box(15,  0.8, 0.25, mWall,   0,  0.4, 2);   // below door (threshold)
+// Door opening visible as gap (no mesh)
+// Window in left segment
+box(2.5, 1.4, 0.1, mWindow, -7.5, 2.2, 2);
+
+// ── Persons ───────────────────────────────────────────────────────────────────
+const persons = [];
+function makePerson(x, z) {
+  const g = new THREE.Group();
+  // Legs
+  const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.9, 8), mPerson);
+  legL.position.set(-0.12, 0.45, 0); g.add(legL);
+  const legR = legL.clone(); legR.position.x = 0.12; g.add(legR);
+  // Torso
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.7, 0.22), mPerson);
+  torso.position.y = 1.15; g.add(torso);
+  // Arms
+  const armMat = new THREE.MeshLambertMaterial({ color: 0xcc4422 });
+  const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.65, 6), armMat);
+  armL.position.set(-0.3, 1.1, 0); armL.rotation.z = 0.3; g.add(armL);
+  const armR = armL.clone(); armR.position.x = 0.3; armR.rotation.z = -0.3; g.add(armR);
+  // Head
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 10), mPerson);
+  head.position.y = 1.68; g.add(head);
+  g.position.set(x, 0, z);
+  g.castShadow = true;
+  scene.add(g);
+  persons.push(g);
+  return g;
+}
+makePerson(-1.5, 3.5);
+makePerson(2.0, 1.0);
+makePerson(-3.5, -2.0);
+
+// ── Chairs ────────────────────────────────────────────────────────────────────
+function makeChair(x, z, ry = 0) {
+  const g = new THREE.Group();
+  box(0.52, 0.06, 0.52, mChair, 0, 0.45, 0);            // seat
+  box(0.52, 0.55, 0.06, mChair, 0, 0.73, -0.23);        // back
+  for (const [lx, lz] of [[-0.21,-0.21],[-0.21,0.21],[0.21,-0.21],[0.21,0.21]]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.44, 6), mChair);
+    leg.position.set(lx, 0.22, lz);
+    g.add(leg);
+  }
+  g.position.set(x, 0, z);
+  g.rotation.y = ry;
+  scene.add(g);
+}
+makeChair(-4, 5, 0.3);
+makeChair(3.5, 4, -0.5);
+makeChair(1, -3, 1.2);
+makeChair(-2, -4.5, 0);
+
+// ── Tables ────────────────────────────────────────────────────────────────────
+function makeTable(x, z) {
+  const g = new THREE.Group();
+  box(1.4, 0.06, 0.8, mTable, 0, 0.75, 0);
+  for (const [lx, lz] of [[-0.6,-0.32],[-0.6,0.32],[0.6,-0.32],[0.6,0.32]]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.74, 6), mTable);
+    leg.position.set(lx, 0.37, lz);
+    g.add(leg);
+  }
+  g.position.set(x, 0, z);
+  scene.add(g);
+}
+makeTable(-5, 0);
+makeTable(5, -3);
+
+// ── Crates / boxes ────────────────────────────────────────────────────────────
+box(0.9, 0.9, 0.9, mBox, -7,  0.45, 4);
+box(0.7, 0.7, 0.7, mBox, -7,  1.25, 4);
+box(1.1, 0.6, 0.8, mBox,  7.5, 0.3, 1);
+box(0.6, 0.6, 0.6, mBox,  7.5, 0.9, 0.8);
+box(0.5, 0.5, 0.5, mBox,  7.8, 0.25, -1);
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+let yaw = 0, pitch = 0;
+const keys = {};
+let pointerLocked = false;
+
+document.addEventListener('keydown', e => { keys[e.code] = true; });
+document.addEventListener('keyup',   e => { keys[e.code] = false; });
+
+renderer.domElement.addEventListener('click', () => {
+  renderer.domElement.requestPointerLock();
+  document.getElementById('overlay').style.display = 'none';
+});
+
+document.addEventListener('pointerlockchange', () => {
+  pointerLocked = document.pointerLockElement === renderer.domElement;
+});
+
+document.addEventListener('mousemove', e => {
+  if (!pointerLocked) return;
+  yaw   -= e.movementX * 0.0022;
+  pitch -= e.movementY * 0.0022;
+  pitch  = Math.max(-1.3, Math.min(1.3, pitch));
+});
+
+// ── WebSocket relay ───────────────────────────────────────────────────────────
+const wsStatus = document.getElementById('ws-status');
+let ws, lastSend = 0;
+
+function connectWS() {
+  ws = new WebSocket('ws://localhost:8765');
+  ws.onopen  = () => wsStatus.textContent = 'WS: connecté ✓';
+  ws.onclose = () => { wsStatus.textContent = 'WS: déconnecté'; setTimeout(connectWS, 1500); };
+  ws.onerror = () => wsStatus.textContent = 'WS: erreur';
+}
+connectWS();
+
+// ── Animate ───────────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+const tmpDir   = new THREE.Vector3();
+const tmpRight = new THREE.Vector3();
+const tmpUp    = new THREE.Vector3(0, 1, 0);
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t  = clock.getElapsedTime();
+
+  // Persons idle animation
+  persons.forEach((p, i) => {
+    p.position.y = Math.sin(t * 0.8 + i * 1.3) * 0.015;
+  });
+
+  // Camera
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  const speed = (keys['ShiftLeft'] ? 6 : 3) * dt;
+  camera.getWorldDirection(tmpDir);
+  tmpRight.crossVectors(tmpDir, tmpUp).normalize();
+  const flat = new THREE.Vector3(tmpDir.x, 0, tmpDir.z).normalize();
+
+  if (keys['KeyW'] || keys['ArrowUp'])    camera.position.addScaledVector(flat,   speed);
+  if (keys['KeyS'] || keys['ArrowDown'])  camera.position.addScaledVector(flat,  -speed);
+  if (keys['KeyA'] || keys['ArrowLeft'])  camera.position.addScaledVector(tmpRight, -speed);
+  if (keys['KeyD'] || keys['ArrowRight']) camera.position.addScaledVector(tmpRight,  speed);
+
+  // Clamp to room bounds
+  camera.position.x = Math.max(-10.5, Math.min(10.5, camera.position.x));
+  camera.position.z = Math.max(-5.8,  Math.min(9.8,  camera.position.z));
+  camera.position.y = 1.65;
+
+  renderer.render(scene, camera);
+
+  // Stream ~30fps
+  const now = performance.now();
+  if (now - lastSend >= 33 && ws && ws.readyState === WebSocket.OPEN) {
+    lastSend = now;
+    renderer.domElement.toBlob(blob => {
+      blob.arrayBuffer().then(buf => ws.send(buf));
+    }, 'image/jpeg', 0.75);
+  }
+}
+
+animate();
+</script>
+</body>
+</html>
