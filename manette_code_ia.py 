@@ -92,4 +92,4 @@ class DroneAIPont:
 
 if __name__ == "__main__":
     bridge = DroneAIPont()
-    bridge.run(
+    bridge.run()
