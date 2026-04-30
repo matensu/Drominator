@@ -3,93 +3,80 @@ import serial
 import time
 
 # --- CONFIGURATION ---
-SERIAL_PORT = 'COM3'  # À adapter (ex: /dev/ttyACM0 sur Linux)
-BAUD_RATE = 420000    # Standard pour l'ExpressLRS / CRSF
-REFRESH_RATE = 0.02   # 50Hz (20ms)
+SERIAL_PORT = 'COM3'  # À CHANGER selon ton PC
+BAUD_RATE = 420000    # Vitesse ELRS
+CH_ORDER = [0, 1, 2, 3] # Ordre standard (Roll, Pitch, Throttle, Yaw)
 
-class DroneAIPont:
+class ELRSTestBridge:
     def __init__(self):
-        # Initialisation de la manette (USB HID)
         pygame.init()
         pygame.joystick.init()
         
         if pygame.joystick.get_count() == 0:
-            raise Exception("Radiocommande non détectée. Vérifiez le mode USB HID.")
-        
+            print("ERREUR : Manette non détectée. Est-elle en mode USB HID ?")
+            exit()
+            
         self.controller = pygame.joystick.Joystick(0)
         self.controller.init()
-        print(f"Connecté à : {self.controller.get_name()}")
-
-        # Initialisation de la liaison vers le module ELRS
+        
         try:
             self.ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0)
-        except:
-            print("Attention : Port série non trouvé. Mode simulation actif.")
+            print(f"Connecté à {self.controller.get_name()} | Port: {SERIAL_PORT}")
+        except Exception as e:
+            print(f"ERREUR Port Série : {e}")
             self.ser = None
 
-    def get_manual_sticks(self):
-        """Récupère les axes de la radio (-1.0 à 1.0)"""
+    def crsf_crc8(self, data):
+        crc = 0
+        for byte in data:
+            crc ^= byte
+            for _ in range(8):
+                if crc & 0x80: crc = (crc << 1) ^ 0xD5
+                else: crc <<= 1
+                crc &= 0xFF
+        return crc
+
+    def send_test_frame(self):
         pygame.event.pump()
-        return {
-            "roll":  self.controller.get_axis(0),
-            "pitch": self.controller.get_axis(1),
-            "throttle": self.controller.get_axis(2),
-            "yaw":   self.controller.get_axis(3),
-            "arm_switch": self.controller.get_button(0) # Bouton d'armement
-        }
-
-    def mix_ai_commands(self, manual, ai_cam_data):
-        """
-        Fusionne les données manuelles et l'IA.
-        Exemple : L'IA caméra ajuste le Pitch pour garder la cible au centre.
-        """
-        final_commands = manual.copy()
         
-        # Logique d'assistance IA : 
-        # Si l'IA détecte quelque chose, elle modifie légèrement le Pitch/Yaw
-        if ai_cam_data['target_locked']:
-            final_commands['pitch'] += ai_cam_data['correction_y'] * 0.5
-            final_commands['yaw']   += ai_cam_data['correction_x'] * 0.5
-            
-        # On s'assure de rester dans les limites [-1, 1]
-        for key in ['roll', 'pitch', 'throttle', 'yaw']:
-            final_commands[key] = max(-1.0, min(1.0, final_commands[key]))
-            
-        return final_commands
-
-    def send_crsf(self, commands):
-        """Convertit et envoie au protocole CRSF"""
-        # Conversion -1/1 vers 172/1811 (Plage standard CRSF/ELRS)
+        # 1. Lecture des 4 axes principaux
+        # On convertit le -1/+1 en 172/1811 (Format CRSF)
         channels = [992] * 16
-        channels[0] = int((commands['roll'] + 1) * 819.5 + 172)
-        channels[1] = int((commands['pitch'] + 1) * 819.5 + 172)
-        channels[2] = int((commands['throttle'] + 1) * 819.5 + 172)
-        channels[3] = int((commands['yaw'] + 1) * 819.5 + 172)
-        
-        # Ici on injecterait la fonction de packaging CRSF (voir réponse précédente)
-        if self.ser:
-            # self.ser.write(self.pack_crsf(channels))
-            pass
+        for i in range(4):
+            val = self.controller.get_axis(CH_ORDER[i])
+            channels[i] = int((val + 1) * 819.5 + 172)
 
-    def run(self):
-        print("Système démarré. Appuyez sur Ctrl+C pour stopper.")
+        # 2. Affichage Debug (pour vérifier que les chiffres bougent)
+        print(f"CH1:{channels[0]} | CH2:{channels[1]} | CH3:{channels[2]} | CH4:{channels[3]}", end='\r')
+
+        # 3. Encodage CRSF
+        payload = bytearray()
+        bits = 0
+        bit_count = 0
+        for ch in channels:
+            bits |= (ch & 0x07FF) << bit_count
+            bit_count += 11
+            while bit_count >= 8:
+                payload.append(bits & 0xFF)
+                bits >>= 8
+                bit_count -= 8
+        
+        frame = bytearray([0xEE, 24, 0x16]) + payload
+        frame.append(self.crsf_crc8(frame[2:]))
+        
+        if self.ser:
+            self.ser.write(frame)
+
+    def start(self):
+        print("Test en cours... Bouge les sticks ! (Ctrl+C pour arrêter)")
         try:
             while True:
-                # 1. Lecture Radio
-                manual = self.get_manual_sticks()
-                
-                # 2. Simulation de l'entrée de ton IA Caméra existante
-                # ai_cam_data = ton_ia_camera.get_inference()
-                ai_cam_data = {'target_locked': False, 'correction_x': 0, 'correction_y': 0}
-                
-                # 3. Fusion et Envoi
-                final = self.mix_ai_commands(manual, ai_cam_data)
-                self.send_crsf(final)
-                
-                time.sleep(REFRESH_RATE)
+                self.send_test_frame()
+                time.sleep(0.01) # 100Hz
         except KeyboardInterrupt:
-            print("Arrêt de sécurité.")
+            print("\nTest terminé.")
+            if self.ser: self.ser.close()
 
 if __name__ == "__main__":
-    bridge = DroneAIPont()
-    bridge.run()
+    tester = ELRSTestBridge()
+    tester.start()
