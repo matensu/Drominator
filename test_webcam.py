@@ -1,68 +1,59 @@
 import os
 os.environ["QT_QPA_PLATFORM"] = "xcb"
 
+import argparse
 import sys
 import cv2
-import math
 import numpy as np
 import threading
 import torch
 import time
 from ultralytics import YOLO
 
-SIM_MODE      = "--sim"      in sys.argv
-AUTOPILOT_MODE = "--autopilot" in sys.argv
-from PIL import Image
+from ai.pipeline_utils import (
+    CONF_THRESHOLD, INFER_SIZE, NMS_IOU, FOV_WIDE, FOV_NARROW,
+    MIN_BBOX_PX,
+    DEPTH_MODEL_CHOICES,
+    compute_focal, estimate_distance, danger_color,
+    load_depth_model, infer_depth, depth_colormap, detect_unknown_obstacles,
+    reset_depth_stream, depth_backend,
+)
 
-# ── Paramètres ────────────────────────────────────────────────────────────────
-CONF_THRESHOLD   = 0.5
-INFER_SIZE       = 320
-NMS_IOU          = 0.8     # élevé = conserve les boîtes qui se chevauchent
-FOV_WIDE         = 120
-FOV_NARROW       = 60
-MIN_BBOX_PX      = 20
-MIN_UNKNOWN_AREA = 1500
-MAX_UNKNOWN_DEPTH= 0.55
-DEPTH_CANNY_LOW  = 20
-DEPTH_CANNY_HIGH = 60
-DEPTH_MAX_HZ     = 12      # plafond depth inference
+DEPTH_MAX_HZ = 12      # plafond depth inference (thread depth)
 
-REAL_HEIGHT = {
-    "person": 1.75, "bicycle": 1.1,  "car":  1.5,  "motorcycle": 1.2,
-    "bus":    3.0,  "truck":   3.5,  "dog":  0.5,  "cat":        0.3,
-    "chair":  0.9,  "bottle":  0.25, "laptop": 0.35, "tv":       0.6,
-    "window": 1.5,  "door":    2.0,  "wall": 2.5,
-}
-DEFAULT_HEIGHT = 1.0
 
-# ── Géométrie ─────────────────────────────────────────────────────────────────
-def compute_focal(w, fov):
-    return w / (2.0 * math.tan(math.radians(fov / 2.0)))
+def _parse_args() -> argparse.Namespace:
+    ap = argparse.ArgumentParser(description="Drominator — détection v2 (YOLO + depth)")
+    ap.add_argument("--sim", action="store_true", help="Rendu Panda3D au lieu de la webcam")
+    ap.add_argument("--autopilot", action="store_true", help="Mode PPO + visualisation couloir")
+    ap.add_argument(
+        "--depth-model", default="auto", choices=DEPTH_MODEL_CHOICES,
+        help="Backend depth — auto = VDA-Small → VDA-Base → DA-V2 (défaut: auto)",
+    )
+    ap.add_argument(
+        "--depth-infer-every", type=int, default=3,
+        help="N'exécute le forward depth qu'une frame sur K (défaut 3)",
+    )
+    ap.add_argument(
+        "--benchmark", action="store_true",
+        help="Mesure les FPS du backend depth sur 100 frames synthétiques puis quitte",
+    )
+    ap.add_argument(
+        "--device", default="",
+        help="Force 'cpu' / 'cuda' / 'cuda:0'. Défaut : auto-détect",
+    )
+    return ap.parse_args()
+
+
+ARGS = _parse_args()
+SIM_MODE = ARGS.sim
+AUTOPILOT_MODE = ARGS.autopilot
+
 
 def to_3d(cx, cy, dist, fw, fh, focal):
     return (round((cx - fw/2) * dist / focal, 2),
             round((cy - fh/2) * dist / focal, 2),
             round(dist, 2))
-
-def estimate_distance(label, bbox_h_px, frame_h, focal_wide, focal_narrow):
-    if bbox_h_px < MIN_BBOX_PX:
-        return None, None
-    real_h     = REAL_HEIGHT.get(label, DEFAULT_HEIGHT)
-    d_wide     = (real_h * focal_wide)   / bbox_h_px
-    d_narrow   = (real_h * focal_narrow) / bbox_h_px
-    ratio      = min(bbox_h_px / frame_h, 1.0)
-    S          = 5
-    rw, rn     = ratio**S, (1-ratio)**S
-    t          = rw + rn
-    dist       = (rw/t)*d_wide + (rn/t)*d_narrow
-    conf       = min((bbox_h_px / MIN_BBOX_PX)**2 / 100.0, 1.0)
-    return round(dist, 1), round(conf, 2)
-
-def danger_color(dist):
-    if dist is None: return (180, 180, 180)
-    if dist < 3:     return (0,   0,   255)
-    if dist < 8:     return (0, 165,   255)
-    return                  (0, 210,     0)
 
 # ── Calibration distance via depth map ───────────────────────────────────────
 def calibrate_depth_scale(calib_pts, depth_map):
@@ -114,63 +105,7 @@ def draw_topdown_map(objects_3d):
     cv2.putText(m, "TOP VIEW", (4,14), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200,200,200), 1)
     return m
 
-# ── Depth Anything V2 ─────────────────────────────────────────────────────────
-_depth_model     = None
-_depth_processor = None
-_depth_device    = "cpu"
-
-def load_depth_model(device):
-    global _depth_model, _depth_processor, _depth_device
-    try:
-        from transformers import AutoImageProcessor, AutoModelForDepthEstimation
-        print("[DEPTH] Chargement Depth Anything V2-Small...")
-        _depth_processor = AutoImageProcessor.from_pretrained(
-            "depth-anything/Depth-Anything-V2-Small-hf")
-        _depth_model = AutoModelForDepthEstimation.from_pretrained(
-            "depth-anything/Depth-Anything-V2-Small-hf")
-        _depth_model.to(device).eval()
-        _depth_device = device
-        print(f"[DEPTH] Chargé sur {device}")
-        return True
-    except Exception as e:
-        print(f"[DEPTH] Non disponible : {e}")
-        return False
-
-def infer_depth(frame_bgr):
-    pil = Image.fromarray(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB))
-    inputs = _depth_processor(images=pil, return_tensors="pt")
-    inputs = {k: v.to(_depth_device) for k, v in inputs.items()}
-    with torch.no_grad():
-        raw = _depth_model(**inputs).predicted_depth.squeeze().cpu().float().numpy()
-    d_min, d_max = raw.min(), raw.max()
-    norm = (raw - d_min) / (d_max - d_min + 1e-8)
-    return cv2.resize(norm, (frame_bgr.shape[1], frame_bgr.shape[0]),
-                      interpolation=cv2.INTER_LINEAR)
-
-def depth_colormap(depth_norm):
-    return cv2.applyColorMap(((1.0 - depth_norm)*255).astype(np.uint8),
-                             cv2.COLORMAP_INFERNO)
-
-def detect_unknown_obstacles(depth_norm, yolo_boxes, shape):
-    depth_u8 = (depth_norm * 255).astype(np.uint8)
-    edges    = cv2.Canny(depth_u8, DEPTH_CANNY_LOW, DEPTH_CANNY_HIGH)
-    kernel   = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-    edges    = cv2.dilate(edges, kernel, iterations=2)
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    unknown = []
-    for cnt in contours:
-        if cv2.contourArea(cnt) < MIN_UNKNOWN_AREA:
-            continue
-        x1, y1, wc, hc = cv2.boundingRect(cnt)
-        x2, y2 = x1+wc, y1+hc
-        if depth_norm[y1:y2, x1:x2].mean() > MAX_UNKNOWN_DEPTH:
-            continue
-        cx, cy = (x1+x2)//2, (y1+y2)//2
-        if any(bx1-10 <= cx <= bx2+10 and by1-10 <= cy <= by2+10
-               for (bx1,by1,bx2,by2) in yolo_boxes):
-            continue
-        unknown.append((x1, y1, x2, y2))
-    return unknown
+# ── Depth : chargement + inférence importés depuis ai/pipeline_utils ─────────
 
 # ── Mode Autopilot ────────────────────────────────────────────────────────────
 
@@ -352,12 +287,49 @@ def _depth_loop(st, depth_ok):
             time.sleep(rem)
 
 # ── Init ──────────────────────────────────────────────────────────────────────
-device   = "cuda" if torch.cuda.is_available() else "cpu"
-yolo     = YOLO("models/yolo11n.pt")
+device = ARGS.device or ("cuda" if torch.cuda.is_available() else "cpu")
+
+if ARGS.benchmark:
+    depth_ok = load_depth_model(
+        device=device, model=ARGS.depth_model, infer_every=ARGS.depth_infer_every,
+    )
+    if not depth_ok:
+        sys.exit(2)
+    print(f"[DEPTH] Backend actif : {depth_backend()}")
+    import time as _bt
+    rng = np.random.default_rng(0)
+    frames = [rng.integers(0, 255, (240, 320, 3), dtype=np.uint8) for _ in range(100)]
+    _ = infer_depth(frames[0])
+    reset_depth_stream()
+    t0 = _bt.perf_counter()
+    for f in frames:
+        _ = infer_depth(f)
+    dt = _bt.perf_counter() - t0
+    fps = 100.0 / dt
+    print(
+        f"[BENCH] backend={depth_backend()} device={device} frames=100 "
+        f"infer_every={ARGS.depth_infer_every} → {fps:.1f} FPS "
+        f"({dt * 10:.1f} ms/frame)"
+    )
+    if fps < 10.0:
+        print("[BENCH] ⚠ en-dessous du plancher 10 FPS")
+    elif fps < 15.0:
+        print("[BENCH] ⚠ en-dessous de la cible 15 FPS (plancher 10 OK)")
+    else:
+        print("[BENCH] ✓ au-dessus de la cible 15 FPS")
+    sys.exit(0)
+
+yolo = YOLO("models/yolo11n.pt")
 yolo.to(device)
 print(f"[IA]   YOLOv11n sur {device}")
 
-depth_ok = load_depth_model(device)
+depth_ok = load_depth_model(
+    device=device,
+    model=ARGS.depth_model,
+    infer_every=ARGS.depth_infer_every,
+)
+if depth_ok:
+    print(f"[DEPTH] Backend actif : {depth_backend()}")
 
 renderer = None
 cap      = None
