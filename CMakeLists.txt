@@ -1,6 +1,37 @@
 cmake_minimum_required(VERSION 3.16)
 project(FPVDroneAI_Linux LANGUAGES CXX)
 
+# ── Cibles Python (lancées via cmake --build . --target <nom>) ────────────────
+find_program(PYTHON python3 REQUIRED)
+set(PROJ_ROOT "${CMAKE_SOURCE_DIR}")
+
+add_custom_target(stereo_webcam
+    COMMAND ${PYTHON} ${PROJ_ROOT}/stereo/fake_stereo.py
+    WORKING_DIRECTORY ${PROJ_ROOT}
+    COMMENT "Fake stereo — webcam"
+)
+add_custom_target(stereo_sim
+    COMMAND ${PYTHON} ${PROJ_ROOT}/stereo/fake_stereo.py --sim
+    WORKING_DIRECTORY ${PROJ_ROOT}
+    COMMENT "Fake stereo — simulateur Panda3D"
+)
+add_custom_target(vision_webcam
+    COMMAND ${PYTHON} ${PROJ_ROOT}/vision.py
+    WORKING_DIRECTORY ${PROJ_ROOT}
+    COMMENT "Vision combinée — webcam"
+)
+add_custom_target(vision_drone
+    COMMAND ${PYTHON} ${PROJ_ROOT}/vision.py 2
+    WORKING_DIRECTORY ${PROJ_ROOT}
+    COMMENT "Vision combinée — caméra drone (index 2)"
+)
+add_custom_target(vision_sim
+    COMMAND ${PYTHON} ${PROJ_ROOT}/vision.py --sim
+    WORKING_DIRECTORY ${PROJ_ROOT}
+    COMMENT "Vision combinée — simulateur Panda3D"
+)
+# ─────────────────────────────────────────────────────────────────────────────
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
