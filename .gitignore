@@ -1,14 +1,35 @@
-.venv/
-build/
-/models/
-ai/models/
-ai/models_pipeline/
-ai/models_vision/
-ai/logs/
-ai/logs_pipeline/
-ai/logs_vision/
-*.pt
-*.onnx
-*.engine
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Project artifacts (NEVER commit these)
+datasets/
+ai/models/
+runs/
+build/
+*.tar.gz
+*.zip
+*.pt
+*.onnx
+*.cache
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Logs
+*.log
