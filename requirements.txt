@@ -1,0 +1,35 @@
+# Core ML stack
+torch==2.11.0
+torchvision==0.26.0
+transformers==5.6.1
+ultralytics==8.4.41
+huggingface_hub==1.11.0
+
+# Video-Depth-Anything (vendored under vendor/Video-Depth-Anything).
+# Pas de package PyPI — le repo est cloné en local et ajouté à sys.path par
+# ai/pipeline_utils.py. Dépendances runtime du repo :
+einops==0.8.2
+easydict==1.13
+
+# Imagerie
+opencv-python==4.13.0.92
+pillow==12.2.0
+numpy==2.4.4
+
+# Plot / rapports training (ai/train_gate_detector.py)
+matplotlib==3.10.8
+pandas>=2.0
+
+# Config
+PyYAML==6.0.3
+
+# Notes d'install :
+#   python3.14 -m venv .venv && . .venv/bin/activate && pip install -U pip
+#   pip install -r requirements.txt
+#   git clone --depth 1 https://github.com/DepthAnything/Video-Depth-Anything.git vendor/Video-Depth-Anything
+#
+# Les poids VDA-Metric-Small (116 MB) sont téléchargés automatiquement au
+# premier load_depth_model() dans ai/models/.
+#
+# Non listés ici (spécifiques RL/sim, à installer manuellement si besoin) :
+#   panda3d, stable-baselines3, gymnasium
